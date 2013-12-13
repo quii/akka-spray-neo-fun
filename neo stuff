@@ -1,0 +1,25 @@
+Quick-start guide:
+
+    1. Start the server manually:
+        neo4j start
+
+    2. Open webadmin:
+        open http://localhost:7474/webadmin/
+
+    3. Start exploring the REST API:
+        curl -v http://localhost:7474/db/data/
+
+    4. Stop:
+        neo4j stop
+
+To launch on startup, install launchd-agent to ~/Library/LaunchAgents/ with:
+    neo4j install
+
+If this is an upgrade, see:
+    /usr/local/Cellar/neo4j/1.9.5/libexec/UPGRADE.txt
+
+The manual can be found in:
+    /usr/local/Cellar/neo4j/1.9.5/libexec/doc/
+
+You may need to add JAVA_HOME to your shell profile:
+    export JAVA_HOME="$(/usr/libexec/java_home)"
