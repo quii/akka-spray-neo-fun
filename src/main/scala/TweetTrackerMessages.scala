@@ -21,8 +21,6 @@ class TweetTracker extends Actor{
   private val doiCreator = createNeoRestActor(context)
   private val relationshipCreator = createNeoRestActor(context)
 
-
-
   def receive = {
     case RecordTweet(person, doi) => {
 
