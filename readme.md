@@ -23,3 +23,5 @@ neo4j 2.0
 http://docs.neo4j.org/chunked/milestone/rest-api-unique-indexes.html
 
 http post http://localhost:7474/db/data/node/0/relationships to=http://localh
+
+echo '{"property_keys":["doi"]}' | http post http://localhost:7474/db/data/schema/index/document

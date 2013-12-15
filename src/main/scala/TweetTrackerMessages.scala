@@ -25,8 +25,6 @@ class TweetTracker extends Actor{
   def receive = {
     case RecordTweet(person, doi) => {
 
-      println(s"Going to try and post $person and $doi to graph")
-
       (for {
         p <- (personCreator ? CreateNode(NodeCreationBody("name", person, Map("name" -> person)))).mapTo[HttpResponse]
         d <- (doiCreator ? CreateNode(NodeCreationBody("doi", doi, Map("name" -> doi)))).mapTo[HttpResponse]

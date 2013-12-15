@@ -13,6 +13,7 @@ import spray.http.HttpResponse
 import scala.concurrent.Future
 import spray.json.DefaultJsonProtocol
 import spray.httpx.SprayJsonSupport._
+import neo.NodeResponseParser.MyJsonProtocol
 
 object NeoRESTApi {
   case class NodeCreationBody(key: String, value: String, properties: Map[String, String])
@@ -34,30 +35,19 @@ class NeoRESTApi(baseUrl: String) extends Actor {
 
   implicit val system = context.system
   import context.dispatcher
+  import MyJsonProtocol._
 
   def receive = {
 
     case CreateNode(query) => {
-//      val response = IO(Http) ? createPostRequest(query, baseUrl)
-
-      object MyJsonProtocol extends DefaultJsonProtocol {
-        implicit val createFormat = jsonFormat3(NodeCreationBody)
-      }
-
-      import MyJsonProtocol._
 
       val pipeline: HttpRequest => Future[HttpResponse] = (
         addHeader("Accept", "application/json")
           ~> sendReceive
         )
-      val request: HttpRequest = Post(baseUrl, query)
 
-      println("request = " + request)
+      pipeline(Post(baseUrl, query)).mapTo[HttpResponse] pipeTo sender
 
-      val response: Future[HttpResponse] =
-        pipeline(request)
-
-      response.mapTo[HttpResponse] pipeTo sender
     }
 
     case CreateRelationship(uri1, uri2, description) =>{
@@ -76,15 +66,11 @@ class NeoRESTApi(baseUrl: String) extends Actor {
 
     val body = HttpEntity(ContentTypes.`application/json`, query)
 
-    val request: HttpRequest = HttpRequest(
+    HttpRequest(
       method = HttpMethods.POST,
       uri = url,
       entity = body
     ) ~> addHeader("Accept", "application/json")
-
-    println("request = " + request)
-
-    request
 
   }
 
