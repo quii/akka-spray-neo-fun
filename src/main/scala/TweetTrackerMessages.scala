@@ -21,6 +21,7 @@ class TweetTracker extends Actor{
   private val personCreator = createNeoRestActor(context, "http://localhost:7474/db/data/index/node/person?uniqueness=get_or_create")
   private val doiCreator = createNeoRestActor(context, "http://localhost:7474/db/data/index/node/document?uniqueness=get_or_create")
   private val relationshipCreator = createNeoRestActor(context)
+  private val labelMaker = createNeoRestActor(context)
 
   def receive = {
     case RecordTweet(person, doi) => {
@@ -37,8 +38,24 @@ class TweetTracker extends Actor{
 
       import NodeResponseParser._
 
-      val relationship = CreateRelationship(getRelationshipLocation(person), NodeRelationshipBody(getLocation(doi), "tweeted"))
-      relationshipCreator ! relationship
+      val personLocations = getLocations(person)
+      val doiLocations = getLocations(doi)
+
+      val relationshipToMake: Option[CreateRelationship] = for {
+        personLocations <- personLocations
+        doiLocations <- doiLocations
+        relationship = NodeRelationshipBody(doiLocations.location, "tweeted")
+      }
+      yield (CreateRelationship(personLocations.relationships, relationship))
+
+      if(relationshipToMake.isEmpty){
+        println("Something messed up when parsing responses")
+        throw new Exception("balls")
+      }
+
+      relationshipCreator ! relationshipToMake.get
+      labelMaker ! CreateLabel(personLocations.get.labels, "person")
+      labelMaker ! CreateLabel(doiLocations.get.labels, "document")
 
     }
 

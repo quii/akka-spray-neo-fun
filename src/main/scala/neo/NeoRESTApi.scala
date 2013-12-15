@@ -19,6 +19,8 @@ object NeoRESTApi {
   case class NodeCreationBody(key: String, value: String, properties: Map[String, String])
   case class CreateNode(query: NodeCreationBody)
 
+  case class CreateLabel(uri: String, name: String)
+
   case class RunCypher(query: String, params: Map[String, String])
   case class CypherResult(res: HttpResponse)
 
@@ -47,6 +49,9 @@ class NeoRESTApi(baseUrl: String) extends Actor {
       ~> sendReceive
   )
 
+  private case class CreateLabelResponse(res: HttpResponse)
+
+
   def receive = {
 
     case CreateNode(query) => {
@@ -64,6 +69,20 @@ class NeoRESTApi(baseUrl: String) extends Actor {
 
     case RunCypher(query, params) => {
       pipeline(Post(baseUrl, RunCypher(query, params))).mapTo[HttpResponse] pipeTo sender
+    }
+
+    case CreateLabel(uri, name) =>{
+      val request = Post(uri, HttpEntity(string = s"""["$name"]""", contentType = ContentTypes.`application/json`))
+      println("request for label create = " + request)
+      pipeline(request).mapTo[HttpResponse].map(CreateLabelResponse(_)) pipeTo self
+    }
+
+    case CreateLabelResponse(res) => {
+      if(res.status.isSuccess){
+        println("Label made!")
+      }else{
+        println(s"Label failed to make! $res")
+      }
     }
 
   }
