@@ -18,3 +18,8 @@ neo4j 2.0
 
 - Write it again using tdd :p
 
+
+
+http://docs.neo4j.org/chunked/milestone/rest-api-unique-indexes.html
+
+http post http://localhost:7474/db/data/node/0/relationships to=http://localh

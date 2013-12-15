@@ -11,9 +11,12 @@ import spray.client.pipelining._
 import spray.http.HttpRequest
 import spray.http.HttpResponse
 import scala.concurrent.Future
+import spray.json.DefaultJsonProtocol
+import spray.httpx.SprayJsonSupport._
 
 object NeoRESTApi {
-  case class CreateNode(query: String)
+  case class NodeCreationBody(key: String, value: String, properties: Map[String, String])
+  case class CreateNode(query: NodeCreationBody)
   case class CreateRelationship(uri1: String, uri2: String, description: String)
   case object RelationshipCreatedOK
   case object RelationshipCreatedFailed
@@ -35,13 +38,31 @@ class NeoRESTApi(baseUrl: String) extends Actor {
   def receive = {
 
     case CreateNode(query) => {
-      val response = IO(Http) ? createPostRequest(query)
+//      val response = IO(Http) ? createPostRequest(query, baseUrl)
+
+      object MyJsonProtocol extends DefaultJsonProtocol {
+        implicit val createFormat = jsonFormat3(NodeCreationBody)
+      }
+
+      import MyJsonProtocol._
+
+      val pipeline: HttpRequest => Future[HttpResponse] = (
+        addHeader("Accept", "application/json")
+          ~> sendReceive
+        )
+      val request: HttpRequest = Post(baseUrl, query)
+
+      println("request = " + request)
+
+      val response: Future[HttpResponse] =
+        pipeline(request)
+
       response.mapTo[HttpResponse] pipeTo sender
     }
 
     case CreateRelationship(uri1, uri2, description) =>{
       val json = s"""{"to":"$uri2","type":"$description"}"""
-      val relationshipUri = s"""${uri1}/relationships"""
+      val relationshipUri = s"""${uri1}"""
 
       val response = IO(Http) ? createPostRequest(json, relationshipUri)
       response.mapTo[HttpResponse].map(r=> {
@@ -60,6 +81,8 @@ class NeoRESTApi(baseUrl: String) extends Actor {
       uri = url,
       entity = body
     ) ~> addHeader("Accept", "application/json")
+
+    println("request = " + request)
 
     request
 

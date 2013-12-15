@@ -2,6 +2,7 @@
 import akka.actor.Actor
 import neo.NeoRESTApi._
 import akka.pattern.{ask, pipe}
+import neo.NodeResponseParser
 import scala.concurrent.Future
 import spray.http.{HttpHeader, HttpResponse}
 
@@ -17,8 +18,8 @@ class TweetTracker extends Actor{
 
   import context.dispatcher
 
-  private val personCreator = createNeoRestActor(context)
-  private val doiCreator = createNeoRestActor(context)
+  private val personCreator = createNeoRestActor(context, "http://localhost:7474/db/data/index/node/person?uniqueness=get_or_create")
+  private val doiCreator = createNeoRestActor(context, "http://localhost:7474/db/data/index/node/document?uniqueness=get_or_create")
   private val relationshipCreator = createNeoRestActor(context)
 
   def receive = {
@@ -27,8 +28,8 @@ class TweetTracker extends Actor{
       println(s"Going to try and post $person and $doi to graph")
 
       (for {
-        p <- (personCreator ? CreateNode(s"""{"name":"$person"}""")).mapTo[HttpResponse]
-        d <- (doiCreator ? CreateNode(s"""{"name":"$doi"}""")).mapTo[HttpResponse]
+        p <- (personCreator ? CreateNode(NodeCreationBody("name", person, Map("name" -> person)))).mapTo[HttpResponse]
+        d <- (doiCreator ? CreateNode(NodeCreationBody("doi", doi, Map("name" -> doi)))).mapTo[HttpResponse]
       }
       yield (NodesInserted(p, d))) pipeTo self
 
@@ -36,16 +37,10 @@ class TweetTracker extends Actor{
 
     case NodesInserted(person, doi) => {
 
-      def getLocation(r: HttpResponse) = r.headers.find(_.is("location")).map(_.value)
+      import NodeResponseParser._
 
-      val relationship: Option[CreateRelationship] = for {
-        personLocation <- getLocation(person)
-        doiLocation <- getLocation(doi)
-      } yield (CreateRelationship(personLocation, doiLocation, "tweeted"))
-
-      if(relationship.isEmpty) throw new Exception("Failed to write nodes & relationship")
-
-      relationshipCreator ! relationship.get
+      val relationship = CreateRelationship(getRelationshipLocation(person), getLocation(doi), "tweeted")
+      relationshipCreator ! relationship
 
     }
 
@@ -54,4 +49,5 @@ class TweetTracker extends Actor{
     case RelationshipCreatedFailed => println("Person to DOI relationship failed to create :(")
 
   }
+
 }
