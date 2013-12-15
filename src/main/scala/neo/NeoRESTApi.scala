@@ -19,6 +19,9 @@ object NeoRESTApi {
   case class NodeCreationBody(key: String, value: String, properties: Map[String, String])
   case class CreateNode(query: NodeCreationBody)
 
+  case class RunCypher(query: String, params: Map[String, String])
+  case class CypherResult(res: HttpResponse)
+
   case class NodeRelationshipBody(to: String, `type`: String)
   case class CreateRelationship(uri: String, relationship: NodeRelationshipBody)
   case object RelationshipCreatedOK
@@ -42,7 +45,7 @@ class NeoRESTApi(baseUrl: String) extends Actor {
   val pipeline: HttpRequest => Future[HttpResponse] = (
     addHeader("Accept", "application/json")
       ~> sendReceive
-    )
+  )
 
   def receive = {
 
@@ -57,6 +60,10 @@ class NeoRESTApi(baseUrl: String) extends Actor {
       response.map(r=> {
         if(r.status.isSuccess) RelationshipCreatedOK else RelationshipCreatedFailed
       }) pipeTo sender
+    }
+
+    case RunCypher(query, params) => {
+      pipeline(Post(baseUrl, RunCypher(query, params))).mapTo[HttpResponse] pipeTo sender
     }
 
   }

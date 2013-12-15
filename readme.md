@@ -22,6 +22,6 @@ neo4j 2.0
 
 http://docs.neo4j.org/chunked/milestone/rest-api-unique-indexes.html
 
-http post http://localhost:7474/db/data/node/0/relationships to=http://localh
+MATCH (docs)-[:tweeted]-()-[:tweeted]-(basedoc) WHERE basedoc.name="a" RETURN docs, COUNT(docs) ORDER BY COUNT(docs) DESC
 
 echo '{"property_keys":["doi"]}' | http post http://localhost:7474/db/data/schema/index/document
