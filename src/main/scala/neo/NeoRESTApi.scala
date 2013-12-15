@@ -18,7 +18,9 @@ import neo.NodeResponseParser.MyJsonProtocol
 object NeoRESTApi {
   case class NodeCreationBody(key: String, value: String, properties: Map[String, String])
   case class CreateNode(query: NodeCreationBody)
-  case class CreateRelationship(uri1: String, uri2: String, description: String)
+
+  case class NodeRelationshipBody(to: String, `type`: String)
+  case class CreateRelationship(uri: String, relationship: NodeRelationshipBody)
   case object RelationshipCreatedOK
   case object RelationshipCreatedFailed
 
@@ -37,40 +39,25 @@ class NeoRESTApi(baseUrl: String) extends Actor {
   import context.dispatcher
   import MyJsonProtocol._
 
+  val pipeline: HttpRequest => Future[HttpResponse] = (
+    addHeader("Accept", "application/json")
+      ~> sendReceive
+    )
+
   def receive = {
 
     case CreateNode(query) => {
-
-      val pipeline: HttpRequest => Future[HttpResponse] = (
-        addHeader("Accept", "application/json")
-          ~> sendReceive
-        )
-
       pipeline(Post(baseUrl, query)).mapTo[HttpResponse] pipeTo sender
-
     }
 
-    case CreateRelationship(uri1, uri2, description) =>{
-      val json = s"""{"to":"$uri2","type":"$description"}"""
-      val relationshipUri = s"""${uri1}"""
+    case CreateRelationship(uri, relationship) =>{
 
-      val response = IO(Http) ? createPostRequest(json, relationshipUri)
-      response.mapTo[HttpResponse].map(r=> {
+      val response = pipeline(Post(uri, relationship)).mapTo[HttpResponse]
+
+      response.map(r=> {
         if(r.status.isSuccess) RelationshipCreatedOK else RelationshipCreatedFailed
       }) pipeTo sender
     }
-
-  }
-
-  private def createPostRequest(query:String, url:String = "http://localhost:7474/db/data/node"): HttpRequest = {
-
-    val body = HttpEntity(ContentTypes.`application/json`, query)
-
-    HttpRequest(
-      method = HttpMethods.POST,
-      uri = url,
-      entity = body
-    ) ~> addHeader("Accept", "application/json")
 
   }
 

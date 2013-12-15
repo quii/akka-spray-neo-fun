@@ -37,7 +37,7 @@ class TweetTracker extends Actor{
 
       import NodeResponseParser._
 
-      val relationship = CreateRelationship(getRelationshipLocation(person), getLocation(doi), "tweeted")
+      val relationship = CreateRelationship(getRelationshipLocation(person), NodeRelationshipBody(getLocation(doi), "tweeted"))
       relationshipCreator ! relationship
 
     }
