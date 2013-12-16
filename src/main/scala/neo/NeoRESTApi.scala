@@ -73,15 +73,12 @@ class NeoRESTApi(baseUrl: String) extends Actor {
 
     case CreateLabel(uri, name) =>{
       val request = Post(uri, HttpEntity(string = s"""["$name"]""", contentType = ContentTypes.`application/json`))
-      println("request for label create = " + request)
       pipeline(request).mapTo[HttpResponse].map(CreateLabelResponse(_)) pipeTo self
     }
 
     case CreateLabelResponse(res) => {
-      if(res.status.isSuccess){
-        println("Label made!")
-      }else{
-        println(s"Label failed to make! $res")
+      if(res.status.isFailure){
+        println(s"Failed to create label! $res§")
       }
     }
 
